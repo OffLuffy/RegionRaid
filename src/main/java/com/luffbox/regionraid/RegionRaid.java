@@ -6,6 +6,7 @@ import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.flags.registry.FlagConflictException;
 import com.sk89q.worldguard.protection.flags.registry.FlagRegistry;
 import com.sk89q.worldguard.protection.regions.RegionContainer;
+import org.bukkit.event.raid.RaidTriggerEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Level;
@@ -16,6 +17,15 @@ public final class RegionRaid extends JavaPlugin {
 
 	@Override
 	public void onLoad() {
+		try {
+			RaidTriggerEvent rte = null;
+		} catch (Exception e) {
+			getServer().getLogger().log(Level.SEVERE, String.format("[%s] 'RaidTriggerEvent' doesn't exist! " +
+					"Update your server if you want to use this plugin!", getDescription().getName()));
+			getServer().getPluginManager().disablePlugin(this);
+			return;
+		}
+
 		FlagRegistry registry = WorldGuard.getInstance().getFlagRegistry();
 		try {
 			StateFlag flag = new StateFlag("raid-enabled", true);

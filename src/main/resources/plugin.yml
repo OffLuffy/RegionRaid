@@ -1,6 +1,6 @@
 name: RegionRaid
 version: ${project.version}
 main: com.luffbox.regionraid.RegionRaid
-api-version: 1.13
+api-version: 1.14
 depend: [WorldGuard]
-description: Control raids with WorldGuard regions
+description: Control raids within WorldGuard regions
