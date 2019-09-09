@@ -6,7 +6,6 @@ import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.flags.registry.FlagConflictException;
 import com.sk89q.worldguard.protection.flags.registry.FlagRegistry;
 import com.sk89q.worldguard.protection.regions.RegionContainer;
-import org.bukkit.event.raid.RaidTriggerEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.logging.Level;
@@ -14,15 +13,14 @@ import java.util.logging.Level;
 public final class RegionRaid extends JavaPlugin {
 
 	public static StateFlag RAID_FLAG;
+	private static boolean eventExists = true;
 
 	@Override
 	public void onLoad() {
 		try {
-			RaidTriggerEvent rte = null;
+			Class.forName("org.bukkit.event.raid.RaidTriggerEvent");
 		} catch (Exception e) {
-			getServer().getLogger().log(Level.SEVERE, String.format("[%s] 'RaidTriggerEvent' doesn't exist! " +
-					"Update your server if you want to use this plugin!", getDescription().getName()));
-			getServer().getPluginManager().disablePlugin(this);
+			eventExists = false;
 			return;
 		}
 
@@ -32,14 +30,20 @@ public final class RegionRaid extends JavaPlugin {
 			registry.register(flag);
 			RAID_FLAG = flag;
 		} catch (FlagConflictException e) {
-			getServer().getLogger().log(Level.SEVERE, "'raid-enabled' flag already exists! Disabling plugin...");
+			getLogger().log(Level.SEVERE, "'raid-enabled' flag already exists! Disabling plugin...");
 			getServer().getPluginManager().disablePlugin(this);
 		}
 	}
 
 	@Override
 	public void onEnable() {
-		getServer().getPluginManager().registerEvents(new RaidListener(), this);
+		if (eventExists) {
+			getServer().getPluginManager().registerEvents(new RaidListener(this), this);
+		} else {
+			getLogger().log(Level.SEVERE, "'RaidTriggerEvent' not found! " +
+					"Update your server if you want to use this plugin!");
+			getServer().getPluginManager().disablePlugin(this);
+		}
 	}
 
 	@Override
