@@ -1,15 +1,12 @@
 package com.luffbox.regionraid.listeners;
 
 import com.luffbox.regionraid.RegionRaid;
-import com.sk89q.worldedit.util.Location;
-import com.sk89q.worldedit.world.World;
-import com.sk89q.worldguard.LocalPlayer;
-import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
-import com.sk89q.worldguard.protection.ApplicableRegionSet;
-import com.sk89q.worldguard.protection.regions.RegionQuery;
-import org.bukkit.Raid;
+import com.luffbox.regionraid.events.RaidSuppressEvent;
+import org.bukkit.Location;
+import org.bukkit.entity.Raider;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.raid.RaidSpawnWaveEvent;
 import org.bukkit.event.raid.RaidTriggerEvent;
 
 import java.util.logging.Level;
@@ -20,21 +17,33 @@ public class RaidListener implements Listener {
 	public RaidListener(RegionRaid plugin) { pl = plugin; }
 
 	@EventHandler
-	public void onRaid(RaidTriggerEvent e) {
-		LocalPlayer plr = WorldGuardPlugin.inst().wrapPlayer(e.getPlayer());
-		World w = plr.getWorld();
-		Raid r = e.getRaid();
-		Location loc = new Location(w, r.getLocation().getX(), r.getLocation().getY(), r.getLocation().getZ());
-
-		RegionQuery rq = RegionRaid.getRegionContainer().createQuery();
-		ApplicableRegionSet set = rq.getApplicableRegions(loc);
-
-		if (!set.testState(plr, RegionRaid.RAID_FLAG)) {
-			e.setCancelled(true);
-			String raidLoc = r.getLocation().getWorld().getName() + " (" + r.getLocation().getBlockX() + ", "
-					+ r.getLocation().getBlockY() + "," + r.getLocation().getBlockZ() + ")";
-			pl.getLogger().log(Level.INFO, "Preventing raid: " + raidLoc);
+	public void onWave(RaidSpawnWaveEvent e) {
+		if (!RegionRaid.raidEnabled(e.getRaid())) {
+			RaidSuppressEvent rse = new RaidSuppressEvent(e.getRaid(), e.getWorld(), RaidSuppressEvent.SuppressType.WAVE);
+			pl.getServer().getPluginManager().callEvent(rse);
+			if (!rse.isCancelled()) {
+				pl.getServer().getScheduler().runTaskLater(pl, () -> {
+					for (Raider raider : e.getRaiders()) { raider.remove(); }
+				}, 1L);
+				pl.getLogger().log(Level.INFO, "Suppressing raid wave: " + stringifyLoc(e.getRaid().getLocation()));
+			}
 		}
+	}
+
+	@EventHandler
+	public void onRaid(RaidTriggerEvent e) {
+		if (!RegionRaid.raidEnabled(e.getRaid())) {
+			RaidSuppressEvent rse = new RaidSuppressEvent(e.getRaid(), e.getWorld(), RaidSuppressEvent.SuppressType.TRIGGER);
+			pl.getServer().getPluginManager().callEvent(rse);
+			if (!rse.isCancelled()) {
+				e.setCancelled(true);
+				pl.getLogger().log(Level.INFO, "Suppressing raid trigger: " + stringifyLoc(e.getRaid().getLocation()));
+			}
+		}
+	}
+
+	private String stringifyLoc(Location l) {
+		return String.format("%s (%d, %d, %d)", l.getWorld().getName(), l.getBlockX(), l.getBlockY(), l.getBlockZ());
 	}
 
 }

@@ -4,3 +4,13 @@ main: com.luffbox.regionraid.RegionRaid
 api-version: 1.14
 depend: [WorldGuard]
 description: Control raids within WorldGuard regions
+commands:
+  regionraidtest:
+    description: Tests the Player's current location to see if raids are enabled there
+    permission: regionraid.test
+    usage: /rrtest
+    aliases: [rrtest]
+permission:
+  regionraid.test:
+    description: Allows using /rrtest
+    default: op
